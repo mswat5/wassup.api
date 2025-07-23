@@ -25,8 +25,8 @@ export const signup = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const newUser = new User({
-      fullName: fullName,
-      email: email,
+      fullName,
+      email,
       password: hashedPassword,
     });
 
@@ -61,13 +61,39 @@ export const login = async (req: Request, res: Response) => {
         .json({ message: { errors: formatZodError(validation.error) } });
       return;
     }
-    const { email } = validation.data;
-    const existingUser = User.findOne({ email });
+    const { email, password } = validation.data;
+    const existingUser = await User.findOne({ email });
     if (!existingUser) {
-      res.status(400).json({ message: "user already exists" });
+      res.status(400).json({ message: "user do not exist" });
+      return;
     }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
+    if (!isPasswordCorrect) {
+      res.status(400).json({ message: "invalid credentials" });
+      return;
+    }
+    generateToken(existingUser._id, res);
+    res.status(200).json({
+      _id: existingUser._id,
+      fullName: existingUser.fullName,
+      email: existingUser.email,
+    });
   } catch (error) {
     console.log(error);
     return res.status(400).json({ message: "something went wrong" });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    res.cookie("auth-token", "", { maxAge: 0 });
+    res.status(200).json({ message: "logged out successfully" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "internal server error" });
   }
 };

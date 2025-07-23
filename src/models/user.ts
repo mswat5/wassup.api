@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 export type UserType = {
-  _id: string;
   email: string;
   fullName: string;
   password: string;
