@@ -1,34 +1,26 @@
-import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "dotenv";
-import User from "../models/user";
-import { AuthenticatedRequest } from "../controllers/auth.controller";
-import { JwtPayload } from "../lib/generateToken";
+import { PrismaClient } from "../../generated/prisma";
 config();
+
+const prisma = new PrismaClient();
 export const protectRoute = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const token = req.cookies.auth_token;
+    const token = req.cookies.authToken;
     if (!token) {
       return res.status(400).json({ message: "unauthorized-no token" });
     }
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET_KEY as string
-    ) as JwtPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY as string);
     if (!decoded) {
       return res.status(400).json({ message: "unauthorized-invalid token" });
     }
+    (req as any).user = decoded;
 
-    const user = await User.findById(decoded.userId).select("-password");
-
-    if (!user) {
-      return res.status(400).json({ message: "user not found" });
-    }
-    req.user = user;
     next();
   } catch (error) {
     console.log("error in protected route", error);
