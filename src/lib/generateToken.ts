@@ -1,6 +1,10 @@
 import { Response } from "express";
-import jwt from "jsonwebtoken";
-export const generateToken = async (userId: any, res: Response) => {
+import jwt, { JwtPayload as BasePayload } from "jsonwebtoken";
+
+export interface JwtPayload extends BasePayload {
+  userId: string;
+}
+export const generateToken = async (userId: string, res: Response) => {
   const token = jwt.sign(
     { userId: userId },
     process.env.JWT_SECRET_KEY as string,
